@@ -127,10 +127,30 @@ contract ERC20 is EIP712{
     }
 
     function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
+        require(block.timestamp <= deadline, "ended");
 
-    } // approve+signature
+        bytes32 hashStruct = keccak256(
+            abi.encode(
+                keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"),
+                owner,
+                spender,
+                value,
+                _nonce[owner],
+                deadline
+            )
+        );
 
-    function nonces(address addr) public returns (uint){
+        bytes32 hash_ = _toTypedDataHash(hashStruct);
+        address signer = ecrecover(hash_, v, r, s);
+
+        require(signer == owner, "INVALID_SIGNER");
+
+        _nonce[owner]++;
+        allowances[owner][spender] = value;
+
+    } // signature check + approve
+
+    function nonces(address addr) public view returns (uint){
         return _nonce[addr];
     }
 }
